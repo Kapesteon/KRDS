@@ -75,9 +75,11 @@ You will also need to run python on nodes machines and install dependencies
 
 3 - sudo pip3 install kubernetes 
 
-3 - sudo pip3 install tabulate
+4 - sudo pip3 install tabulate
 
-2 - sudo pip3 install flask
+5 - sudo pip3 install flask
+
+6 - sudo pip install git+https://github.com/rqlite/pyrqlite.git
 
 
 ### Database initialisation

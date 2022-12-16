@@ -52,6 +52,7 @@ def create_user():
     databaseConnection = dbapi.connect(host=HOST, port=PORT)
     
     try:
+
         # Get and save user ID
         userID = getUserID(databaseConnection, username, hash(password))
 

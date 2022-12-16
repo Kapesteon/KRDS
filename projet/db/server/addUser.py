@@ -7,11 +7,13 @@ from pyrqlite import dbapi2 as dbapi
 
 def verifyUsername(databaseConnection, username):
     
-    databaseConnection.execute('SELECT username FROM users WHERE username=?', (username, ))
+    with databaseConnection.cursor() as databaseCursor:
 
-    if databaseConnection.fetchone() is not None:
-        print("[ERROR] Username already exists, please choose another one.")
-        exit(1)
+        databaseCursor.execute('SELECT username FROM users WHERE username=?', (username, ))
+
+        if databaseCursor.fetchone() is not None:
+            print("[ERROR] Username already exists, please choose another one.")
+            exit(1)
 
 
 
@@ -41,7 +43,7 @@ def addUser(databaseConnection, username, password):
 
 def create_user():
 
-    databaseConnection = dbapi.connect(HOST, PORT)
+    databaseConnection = dbapi.connect(host=HOST, port=PORT)
 
     try:
 

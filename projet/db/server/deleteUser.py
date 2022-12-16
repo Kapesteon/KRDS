@@ -13,31 +13,35 @@ def hash(password):
 def getUserID(databaseConnection, username, passwordHash):
     '''check if user is in database. If so, check if the hash of both password match. If so return (True, user_id), else (False, None)'''
 
-    databaseConnection.execute('SELECT id, password_hash FROM users WHERE username=?', (username,))
-    requestResult = databaseConnection.fetchone()
-    if requestResult == None: exitError('Account not found.')
+    with databaseConnection.cursor() as databaseCursor:
+    
+        databaseCursor.execute('SELECT id, password_hash FROM users WHERE username=?', (username,))
+        requestResult = databaseCursor.fetchone()
+        
+        if requestResult == None: exitError('Account not found.')
 
-    userID, fetchedHash = requestResult
-    if fetchedHash != passwordHash: exitError('Login Fail.')
+        userID, fetchedHash = requestResult
+        if fetchedHash != passwordHash: exitError('Login Fail.')
 
-    print("[INFO] : Login Success.")
-    return userID
+        print("[INFO] : Login Success.")
+        return userID
 
 
 
 def deleteUser(databaseConnection, userID):
 
-    sqlDeleteUserFilesQuery = '''DELETE FROM files WHERE user_id = ?''' # ?,? to prevent sqlite injection attacks
-    sqlDeleteUserFilesData = (userID,)
-    sqlDeleteUserQuery = '''DELETE FROM users WHERE id = ?''' # ?,? to prevent sqlite injection attacks
-    sqlDeleteUserData = (userID,)
+    with databaseConnection.cursor() as databaseCursor:
 
-    databaseConnection.execute(sqlDeleteUserFilesQuery, sqlDeleteUserFilesData)
-    databaseConnection.execute(sqlDeleteUserQuery,      sqlDeleteUserData)
-    databaseConnection.commit()
+        sqlDeleteUserFilesQuery = '''DELETE FROM files WHERE user_id = ?''' # ?,? to prevent sqlite injection attacks
+        sqlDeleteUserFilesData = (userID,)
+        sqlDeleteUserQuery = '''DELETE FROM users WHERE id = ?''' # ?,? to prevent sqlite injection attacks
+        sqlDeleteUserData = (userID,)
 
+        databaseCursor.execute(sqlDeleteUserFilesQuery, sqlDeleteUserFilesData)
+        databaseCursor.execute(sqlDeleteUserQuery,      sqlDeleteUserData)
+        databaseConnection.commit()
 
-    print("[INFO] : The user", userID, "and their files have been deleted from the database.") 
+        print("[INFO] : The user", userID, "and their files have been deleted from the database.") 
 
     
 
@@ -45,9 +49,9 @@ def create_user():
     username = input('Username: ')
     password = getpass('Password: ')
 
+    databaseConnection = dbapi.connect(host=HOST, port=PORT)
+    
     try:
-        databaseConnection = dbapi.connect(HOST, PORT)
-
         # Get and save user ID
         userID = getUserID(databaseConnection, username, hash(password))
 

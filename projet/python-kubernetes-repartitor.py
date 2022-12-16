@@ -341,7 +341,7 @@ class GetUserId(Resource):
     def post(self):
         try:
             
-            host = HOST_DB_IP 
+            host = HOST_DB_IP
             port = HOST_DB_PORT 
 
             user_data = request.get_json()

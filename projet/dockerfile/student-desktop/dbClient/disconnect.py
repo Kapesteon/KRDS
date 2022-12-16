@@ -1,11 +1,12 @@
-from clientForDatabase import databaseClient
+from pyrqlite import dbapi2 as dbapi
 from gestion import HOME, HOST, PORT, SLASH, exitError
 from hashlib import sha256
 from os import chdir, mkdir, remove, walk, getenv
 from os.path import basename, exists, getsize, isdir, join
 from pathlib import PurePath
-from shutil import rmtree
-from pathlib import Path
+from traceback import print_exc
+# from shutil import rmtree
+# from pathlib import Path
 
 
 
@@ -68,9 +69,11 @@ def getPathHashFromDatabase(databaseConnection, userID):
 
     sqlFetchFilesQuery = """SELECT path, hash from files where user_id = ?"""
 
-    databaseConnection.execute(sqlFetchFilesQuery, (userID,))
-    
-    return databaseConnection.fetchall()
+    with databaseConnection.cursor() as databaseCursor:
+
+        databaseCursor.execute(sqlFetchFilesQuery, (userID,))
+        
+        return databaseCursor.fetchall()
 
 
 
@@ -166,10 +169,15 @@ def getPackedSortedFiles(userID, localFiles, databaseFiles):
 
 
 def sendRequest(databaseConnection,request,arr,msg,idx):
-    databaseConnection.executemany(request, arr)
-    databaseConnection.commit()
+
     if len(arr):
-        print(f'[DATA] : {msg} files {[basename(f[idx]) for f in arr]}')
+
+        with databaseConnection.cursor() as databaseCursor:
+
+            databaseCursor.executemany(request, arr)
+            databaseConnection.commit()
+        
+            print(f'[DATA] : {msg} files {[basename(f[idx]) for f in arr]}')
 
 
 
@@ -213,15 +221,16 @@ def disconnect():
     userID = getenv('USERID')
     localFiles = collectUserLocalFiles(HOME) # List of tuple (path, hash)
 
-    try:
-        databaseConnection = databaseClient(HOST, PORT, f'Connected to SQLite database!')
+    databaseConnection = dbapi.connect(host=HOST, port=PORT)
 
+    try:
         databaseFiles = getPathHashFromDatabase(databaseConnection, userID)  # List of tuple (path, hash)
         filesStatus = getPackedSortedFiles(userID, localFiles, databaseFiles) # Class of four list of files (moved, edited, created, deleted)
         
         uploadUserFiles(databaseConnection, filesStatus)
     
     except Exception as error:
+        print_exc()
         print("[ERROR] : Failed to upload user files to sqlite database:", error)
 
     finally:

@@ -7,7 +7,7 @@ from sys import argv
 def getUserID(port, host, username, passwordHash):
     '''Check if user is in database. If so, check if the hashsof both password match. If so return (True, user_id), else (False, None)'''
 
-    dbConnection = dbapi.connect(HOST, PORT)
+    dbConnection = dbapi.connect(host=HOST, port=PORT)
 
     try:
 
@@ -39,12 +39,10 @@ def main():
     if len(argv) != 5:
         raise Exception('Walla \'faut mettre l\'IP et le port frero! Et oublie pas le mdp et le usr sinon ça marchera jamais')
         
-    host = argv[1]
-    port = argv[2]
     username = argv[3]
     passwordHash = argv[4]
     
-    getUserID(host, port, username, passwordHash)
+    getUserID(None, None, username, passwordHash)
 
 
     return

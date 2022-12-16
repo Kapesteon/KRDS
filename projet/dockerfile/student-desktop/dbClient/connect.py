@@ -1,4 +1,4 @@
-from clientForDatabase import databaseClient
+from pyrqlite import dbapi2 as dbapi
 from gestion import HOME, HOST, PORT, exitError, returnError
 from getpass import getpass
 from hashlib import sha256
@@ -15,15 +15,17 @@ def hash(password):
 def getUserID(databaseConnection, username, passwordHash):
     '''check if user is in database. If so, check if the hash of both password match. If so return (True, user_id), else (False, None)'''
 
-    databaseConnection.execute('SELECT id, password_hash FROM users WHERE username=?', (username,))
-    requestResult = databaseConnection.fetchone()
-    if requestResult == None: exitError('Account not found.')
+    with databaseConnection.cursor() as databaseCursor:
 
-    userID, fetchedHash = requestResult
-    if fetchedHash != passwordHash: exitError('Login Fail.')
+        databaseCursor.execute('SELECT id, password_hash FROM users WHERE username=?', (username,))
+        requestResult = databaseCursor.fetchone()
+        if requestResult == None: exitError('Account not found.')
 
-    print("[INFO] : Login Success.")
-    return userID
+        userID, fetchedHash = requestResult
+        if fetchedHash != passwordHash: exitError('Login Fail.')
+
+        print("[INFO] : Login Success.")
+        return userID
 
 
 
@@ -33,14 +35,16 @@ def getUserDatabaseFiles(databaseConnection, userID):
 
     sql_fetch_blob_query = """SELECT path, blob FROM files WHERE user_id = ?"""
 
-    databaseConnection.execute(sql_fetch_blob_query, (userID,))
-    userDatabaseFiles = databaseConnection.fetchall()
-    
-    if userDatabaseFiles == []:
-        print('[INFO] : Nothing retrieved.')
-        exit(0)
+    with databaseConnection.cursor() as databaseCursor:
 
-    return userDatabaseFiles
+        databaseCursor.execute(sql_fetch_blob_query, (userID,))
+        userDatabaseFiles = databaseCursor.fetchall()
+        
+        if userDatabaseFiles == []:
+            print('[INFO] : Nothing retrieved.')
+            exit(0)
+
+        return userDatabaseFiles
 
 
 
@@ -72,9 +76,9 @@ def writeUserDatabaseFiles(userDatabaseFiles):
 
 def connect():
 
-    try:
-        databaseConnection = databaseClient(HOST, PORT, 'Connected to SQLite to open session.')
+    databaseConnection = dbapi.connect(host=HOST, port=PORT)
 
+    try:
         # Get and save user ID
         userID = int(getenv('USERID'))
         

@@ -1,8 +1,7 @@
-from clientForDatabase import databaseClient
+from pyrqlite import dbapi2 as dbapi
 from gestion import HOME, HOST, PORT, exitError, returnError
-from getpass import getpass
 from hashlib import sha256
-from os import makedirs, getenv, remove
+from os import makedirs, getenv#, remove
 from os.path import basename, dirname, join
 
 
@@ -31,14 +30,16 @@ def getUserID(databaseConnection, username, passwordHash):
 def getUserDatabaseFiles(databaseConnection, userID):
     '''Get all the user files from the database.'''
 
-    sql_fetch_blob_query = """SELECT path, blob FROM files WHERE user_id = ?"""
+    with databaseConnection.cursor as databaseCursor:
 
-    databaseConnection.execute(sql_fetch_blob_query, (userID,))
-    userDatabaseFiles = databaseConnection.fetchall()
-    
-    if userDatabaseFiles == []:
-        print('[INFO] : Nothing retrieved.')
-        exit(0)
+        sqlFetchBlobQuery = """SELECT path, blob FROM files WHERE user_id = ?"""
+
+        databaseCursor.execute(sqlFetchBlobQuery, (userID,))
+        userDatabaseFiles = databaseCursor.fetchall()
+        
+        if userDatabaseFiles == []:
+            print('[INFO] : Nothing retrieved.')
+            exit(0)
 
     return userDatabaseFiles
 
@@ -72,9 +73,9 @@ def writeUserDatabaseFiles(userDatabaseFiles):
 
 def connect():
 
-    try:
-        databaseConnection = databaseClient(HOST, PORT, 'Connected to SQLite to open session.')
+    databaseConnection = dbapi.connect(HOST, PORT)
 
+    try:
         # Get and save user ID
         userID = int(getenv('USERID'))
         

@@ -1,0 +1,17 @@
+ # alpha-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: alpha-service-user-%USER%
+spec:
+  type: NodePort
+  selector:
+    app: alpha-user-%USER%
+  ports:
+    - name: "vnc"
+      port: 5900
+      targetPort: 5900
+    - name: "novnc"
+      port: 6900
+      targetPort: 6900
+

@@ -1,0 +1,11 @@
+#Create namespace
+kubectl create -f ./kubernetes-dashboard.yaml
+
+
+#Run both files
+kubectl apply -f dashboard-adminuser.yaml
+kubectl apply -f dashboard-adminuserCluster.yaml
+
+
+#Get token
+kubectl -n kubernetes-dashboard create token admin-user

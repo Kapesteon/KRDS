@@ -1,0 +1,59 @@
+FROM debian:bullseye
+
+#---------------------------SETUP ENV VARIABLES------------------------------#
+
+ENV HOME=/home \
+    USER=uqacStudent \
+    UID=1000 \
+    WM=icewm-session \
+    TERM=xterm \
+    STARTUPDIR=/dockerstartup \
+    INSTALL_SCRIPTS=/headless/install \
+    NO_VNC_HOME=/headless/noVNC \
+    DB_LOCATION=/dbClient \
+    DEBIAN_FRONTEND=noninteractive \
+    VNC_COL_DEPTH=24 \
+    VNC_RESOLUTION=1280x1024 \
+    VNC_PASSWD=vncpassword \
+    IS_SECURE=false \
+    KEY=vnc-server-private.pem \
+    CERT=vnc-server.pem \
+    DB_HOST=192.168.0.174 \
+    DB_PORT=65432
+
+WORKDIR $HOME
+
+ENV DISPLAY=:0 \
+    VNC_PORT=5900 \
+    NO_VNC_PORT=6900 
+
+EXPOSE $VNC_PORT $NO_VNC_PORT
+
+ADD ./scripts/installs/ $INSTALL_SCRIPTS/installs/
+ADD ./cert/             $INSTALL_SCRIPTS/cert/
+ADD ./scripts/configs/ $INSTALL_SCRIPTS/configs/
+ADD ./scripts/startup/ $STARTUPDIR/
+#Add the database related script to the docker image
+ADD ./dbClient $DB_LOCATION/
+
+
+#-----------------------------RUN INSTALLS--------------------------------------#
+RUN find $INSTALL_SCRIPTS -name '*.sh' -exec chmod a+x {} +
+RUN find $STARTUPDIR -name '*.sh' -exec chmod a+x {} +
+
+
+RUN exec ls -lhaR $INSTALL_SCRIPTS
+
+#-------Installs------
+RUN exec $INSTALL_SCRIPTS/installs/generic.sh
+RUN exec $INSTALL_SCRIPTS/installs/icewm.sh
+RUN exec $INSTALL_SCRIPTS/installs/no_vnc.sh
+
+#-------Configs------
+RUN exec $INSTALL_SCRIPTS/configs/generic.sh
+
+
+USER $UID
+
+ENTRYPOINT ["/dockerstartup/start_vnc.sh"]
+

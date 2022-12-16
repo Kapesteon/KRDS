@@ -1,0 +1,14 @@
+ # alpha-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-portal
+spec:
+  type: NodePort
+  selector:
+    app: web-portal
+  ports:
+    - name: "http"
+      port: 5000
+      targetPort: 5000
+

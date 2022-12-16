@@ -1,0 +1,31 @@
+# alpha-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alpha-deployment-user-alice
+spec:
+  selector:
+    matchLabels:
+      app: alpha-user-alice
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: alpha-user-alice
+    spec:
+      containers:
+        - name: alpha
+          image: localhost:32000/alpha
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5900
+              name: "vnc"
+            - containerPort: 6900
+              name: "novnc"
+          env:
+          - name: USER_NAME
+            value: alice
+          - name: SECRET_TOKEN
+            value: vncpassword
+          - name: USERID
+            value: "1"

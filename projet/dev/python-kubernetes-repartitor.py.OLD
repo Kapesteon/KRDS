@@ -1,0 +1,346 @@
+import sys      
+import time
+from socket import * #for HTTP listen and replies
+
+from kubernetes import client, config #for kubernetes API calls
+from kubernetes.stream import stream #For launching command in pod 
+
+import ast  #for byte-data conversion
+import os   #for file management
+import fileinput
+import yaml
+import json
+
+
+"""_____________________________________________________________"""
+"""                         Constants                           """
+"""_____________________________________________________________"""
+USER_RELATED_FOLDER = "./users/"
+
+TEMPLATE_K8S_SERVICE_CLIENT = "./users/TEMPLATE_SERVICE.yaml"       #File path to the kubernetes service template that will be duplicated when a new user want to connect
+TEMPLATE_K8S_DEPLOYMENT_CLIENT = "./users/TEMPLATE_DEPLOYMENT.yaml" #File path to the kubernetes deployment template that will be duplicated when a new user want to connect
+
+
+SERVICE_CLIENT_NAME_CONVENTION = "alpha-service-user-"         #Name convention for service files, add the username after the last -
+DEPLOYMENT_CLIENT_NAME_CONVENTION = "alpha-deployment-user-"   #Name convention for deployment files add the username after the last -
+
+DEPLOYMENT_IMAGE_DEFAULT_LOCATION = "localhost:32000/"          #Where kubernetes should look the image for the deployment
+DEPLOYMENT_IMAGE_DEFAULT_NAME="alpha"                           #Default name of the image deployment that kubernetes will use
+
+DEPLOYMENT_DEFAULT_TOKEN="vncpassword"
+image = DEPLOYMENT_IMAGE_DEFAULT_LOCATION+DEPLOYMENT_IMAGE_DEFAULT_NAME
+
+"""_____________________________________________________________"""
+"""                     Web functions                           """
+"""_____________________________________________________________"""
+
+def setup(sock):
+    try : 
+        sock.bind(("127.0.0.1", 8888))
+        #sock.bind((sys.argv[1], int(sys.argv[2])))
+        print("Server launched !")
+    except Exception as e:
+        print(e)
+
+def listen(sock):
+    try : 
+        (bytestr,adress) = sock.recvfrom(4096)
+        print('Msg received : ',bytestr)
+        dict_str = bytestr.decode("UTF-8")
+        data = ast.literal_eval(dict_str) #data is a dict
+
+        #DEBUG:
+        data = {"name" : "jean", "pwd" :"test"}
+
+        userDeploymentFilePath  = createNewUserDeployment(data["name"],image)
+        userServiceFilePath     = createNewUserService(data["name"])
+        port = str(createPodForUser(data["name"],image,userDeploymentFilePath,userServiceFilePath))
+        ipv4 = getNodeIp()
+
+
+        m ='{"ipv4": "'+ipv4+'", "port": '+port+'}'
+        jsonObj = json.dumps(m)
+
+        dataToSend = jsonObj
+        sock.sendto(bytes(dataToSend,encoding="utf-8"), adress)
+
+    except Exception as e:
+        print(e)
+    finally:
+        sock.close
+
+"""_____________________________________________________________"""
+"""            Kubernetes related functions                     """
+"""_____________________________________________________________"""
+
+def find_file(filename, search_path):
+    result = ""
+
+    #Wlaking top-down from the root
+    for root, dir, files in os.walk(search_path):
+        if filename in files:
+            result = os.path.join(root, filename)
+            break
+        
+    return result
+
+#TODO
+def initGUISessionInPod(podname):
+    return
+    #https://stackoverflow.com/questions/73210551/execute-commands-within-kubernetes-pod-in-python
+
+# ***createNewUserService***
+# param     :   [string] username                   (client's username requesting a pod)
+# return    :   [string] userFileNameLocation       (The file path of the service-user.yaml)
+#
+#
+def createNewUserService(username):
+
+    #check if the service is not already created for this user:
+    userFileName = "service-user-"+username+".yaml"
+    userFileNameLocation = USER_RELATED_FOLDER+userFileName
+    userFile = find_file(userFileName, USER_RELATED_FOLDER)
+
+    #If the file was found, return
+    if userFile != "":
+        return userFileNameLocation
+    
+    else: #Else, create it
+    
+        cpCommand = 'cp '+TEMPLATE_K8S_SERVICE_CLIENT+" "+userFileNameLocation
+        print(cpCommand)
+        for i in range(5):
+            try:
+
+                os.popen(cpCommand) 
+                break
+            except Exception as e:
+                print("Error when trying to copy templateServce, happened on attempt %d " % (i))
+    
+
+    time.sleep(3) #Wait for the file to be created
+
+    with fileinput.FileInput("./users/"+userFileName, inplace=True,backup='') as file:
+        for line in file:
+            print(line.replace("%USER%", username), end='')
+    
+    return userFileNameLocation
+
+
+#***createNewUserDeployment***
+# param     :   [string] username                   (client's username requesting a pod)
+#               [string] imageName                      (the name of the docker image to write in the yaml file)
+# return    :   [string] userFileNameLocation       (The file path of the service-user.yaml)
+def createNewUserDeployment(username,imageName):
+
+    #check if the service is not already created for this user:
+    userFileName = "deployment-user-"+username+".yaml"
+    userFileNameLocation = USER_RELATED_FOLDER+userFileName
+    userFile = find_file(userFileName, USER_RELATED_FOLDER)
+
+    #If the file was found, return
+    if userFile != "":
+        return userFileNameLocation
+    
+    else: #Else, create it
+    
+        cpCommand = 'cp '+TEMPLATE_K8S_DEPLOYMENT_CLIENT+" "+userFileNameLocation
+        print(cpCommand)
+        for i in range(5):
+            try:
+
+                os.popen(cpCommand) 
+                break
+            except Exception as e:
+                print("Error when trying to copy templateServce, happened on attempt %d " % (i))
+    
+
+    time.sleep(3) #Wait for the file to be created
+
+    with fileinput.FileInput("./users/"+userFileName, inplace=True,backup='') as file:
+        for line in file:
+            print(line.replace("%USER%", username), end='')
+
+    with fileinput.FileInput("./users/"+userFileName, inplace=True,backup='') as file:
+        for line in file:
+            print(line.replace("%IMAGE%", imageName), end='')
+
+    with fileinput.FileInput("./users/"+userFileName, inplace=True,backup='') as file:
+        for line in file:
+            print(line.replace("%SECRET_TOKEN%", DEPLOYMENT_DEFAULT_TOKEN), end='')
+
+    return userFileNameLocation
+
+#***createPodForUser***
+# param     :   [string] username                   (client's username requesting a pod)
+#               [string] deploymentFilePath         (File path of the deployment.yaml)
+#               [string] serviceFilePath            (File path of the service.yaml)
+# return    :   [int] port       (The node's port forwarded for the user to connect)
+def createPodForUser(username,imageName,deploymentFilePath,serviceFilePath):
+    
+    appv1 = client.AppsV1Api()
+    corev1 = client.CoreV1Api()
+    
+    metadataNameDeployment = DEPLOYMENT_CLIENT_NAME_CONVENTION + username
+
+    deploymentList = appv1.list_namespaced_deployment(namespace="default")
+
+    isUserDeploymentAlreadyCreated = False
+
+    #Check if the deployment is already created or not
+    for item in deploymentList.items:
+        if (item.metadata.name == metadataNameDeployment):
+            isUserDeploymentAlreadyCreated = True
+
+    if(not isUserDeploymentAlreadyCreated):
+        with open(deploymentFilePath) as f:
+            dep = yaml.safe_load(f)
+            resp = appv1.create_namespaced_deployment(
+                body=dep, namespace="default")
+            print("Deployment created. status='%s'" % resp.metadata.name)
+    
+
+    """
+    namespaces_list = v1.list_namespace()
+    namespaces = [item.metadata.name for item in namespaces_list.items]
+        
+    pods_list = v1.list_namespaced_pod(namespace="default")
+    pods = [item.metadata.name for item in pod_list.items]
+    """
+
+
+    metadataNameService = SERVICE_CLIENT_NAME_CONVENTION + username
+
+    #Check if the service is already created or not
+    serviceList = corev1.list_namespaced_service(namespace="default")
+    isUserServiceAlreadyCreated = False
+    for item in serviceList.items:
+        if (item.metadata.name == metadataNameService):
+            isUserServiceAlreadyCreated = True
+            userService = item
+
+    #If the deployment and services are not yet created
+    if(not isUserDeploymentAlreadyCreated):
+        with open(serviceFilePath) as f:
+            dep = yaml.safe_load(f)
+            service = corev1.create_namespaced_service(
+                body=dep, namespace="default")
+            print("Service created. status='%s'" % service.metadata.name)
+
+        userService = service
+
+
+
+
+    vncport = userService.spec.ports[0].node_port
+    novncport = userService.spec.ports[1].node_port
+    port = vncport 
+
+    return port
+
+
+def getNodeIp():
+
+    # grab the node name from the pod environment vars
+    nodeName = os.environ.get('NODE_NAME', None)
+
+    v1 = client.CoreV1Api()
+
+    #DEBUG
+    nodeName = 'tuf'
+
+    nodes = v1.list_node(pretty=True)
+    for node in nodes.items:
+        if node.metadata.name == nodeName:
+            addresses = node.status.addresses
+            for i in addresses:
+                if i.type =="InternalIP":
+                    address = i.address
+
+    return address
+
+
+
+
+
+
+
+
+
+
+
+
+    """
+
+    nodes = [node for node in nodes.items if
+                'node.kubernetes.io' in node.metadata.labels]
+    # get all addresses of the master
+    addresses = nodes[0].status.addresses
+
+    print([i.address for i in addresses if i.type == "InternalIP"][0] )
+
+
+    for pod in coreV1Api.list_pod_for_all_namespaces(watch=False).items:
+    print("%s\t\t%s\t%s" % (pod.status.pod_ip, pod.metadata.namespace, pod.metadata.name))
+    
+
+    containers = []
+    container1 = client.V1Container(name=" alpha-user-"+username, image=imageName)
+    containers.append(container1)
+        
+    pod_spec = client.V1PodSpec(containers=containers)
+    pod_metadata = client.V1ObjectMeta(name="alpha-pod-user-"+username, namespace="default")
+
+    pod_body = client.V1Pod(api_version="v1", kind="Pod", metadata=pod_metadata, spec=pod_spec)
+        
+    v1.create_namespaced_pod(namespace="default", body=pod_body)
+    
+    print("alpha-pod-user-"+username+" created !")
+    print("all pods :")
+
+    pods_list = v1.list_namespaced_pod(namespace="default")
+    pods = [item.metadata.name for item in pod_list.items]
+    #pod_logs = v1.read_namespaced_pod_log(name="my-pod", namespace='default')
+    #v1.delete_namespaced_pod(namespace="default", name="my-pod")
+
+#NEW
+    for pod in coreV1Api.list_pod_for_all_namespaces(watch=False).items:
+    print("%s\t\t%s\t%s" % (pod.status.pod_ip, pod.metadata.namespace, pod.metadata.name))
+"""
+
+
+
+
+
+
+"""_____________________________________________________________"""
+"""                             Main                            """
+"""_____________________________________________________________"""
+#--HTTP part
+sock = socket(AF_INET,SOCK_DGRAM)
+
+#--K8s part
+try:
+    config.load_incluster_config()
+except:
+    config.load_kube_config()
+#config.load_incluster_config()
+v1 = client.CoreV1Api()
+
+
+ #python3 server.py 127.0.0.1 8888 pong
+#if len(sys.argv) != 4:
+#    print("Usage : ./prog <server> <port> <message>")
+#    sys.exit()
+#sys.argc = 4
+#sys.argv[1]="127.0.0.1"
+#sys.argv[2]="8888"
+#sys.argv[3]="t"
+
+setup(sock)
+while(True):
+    listen(sock)
+
+
+
+

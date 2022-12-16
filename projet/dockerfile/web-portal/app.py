@@ -1,6 +1,9 @@
 import hashlib, json, requests
 from flask import Flask, render_template, request, redirect, make_response
 
+HOST = "0.0.0.0"
+PORT = "5000"
+
 try : 
     isloged = False
     #Nom de l'application
@@ -92,8 +95,8 @@ try :
     def loginDisconnect():
         try :
             resp = make_response()
-            resp.delete_cookie('auth', path="/", domain="192.168.0.153")
-            resp.delete_cookie('username', path="/", domain="192.168.0.153")
+            resp.delete_cookie('auth', path="/")
+            resp.delete_cookie('username', path="/")
             return resp
         except Exception as e:
             print("Error : ", e)
@@ -123,7 +126,7 @@ try :
 
     #Lancement de l'application web
     if __name__ == '__main__':
-        app.run()
+        app.run(host=HOST, port=PORT)
 
 except Exception as e: 
     print('Error : ', e)

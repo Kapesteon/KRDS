@@ -98,16 +98,21 @@ Open 3 terminals and place yourself at the root of the project, from there run t
 
 Command to launch the database :
 
-
       python3 ./db/server/serverForDatabase.py
+
 
 Command to launch the REST end-point API :
 
       python3 python-kubernetes-repartitor.py [EXPOSED_IP] [EXPOSED_PORT]
 
-Command to launch the web server :
 
-      python3 ./web/app.py
+Command to add the web server to kubernetes :
+
+      ./projet/startup.sh
+
+This will create a kubernetes deployment as well as a service to expose web portal, you can see the web portal port exposed using this command :
+
+      kubectl get services
 
 ---
 

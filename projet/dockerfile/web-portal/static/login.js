@@ -25,11 +25,11 @@ function getLoginInfo(){
       success: function(response){
         console.log(response)
         if (response["status"] == "ok"){
-          document.cookie = "auth=True;domaine=192.168.0.153:8888;";
-          document.cookie = "username="+username+";domaine=192.168.0.153:8888;";
+          document.cookie = "auth=True;";
+          document.cookie = "username="+username;
           window.location.replace('/index');
         }
-        else if (response["status"] == "Error"){
+        else if (response["status"] == "Error" && document.getElementById("errorLogin") == null){
           divLogin = document.getElementById("divLogin");
           errorPop = document.createElement("a");
           errorPop.innerText = "Wrong login or password";

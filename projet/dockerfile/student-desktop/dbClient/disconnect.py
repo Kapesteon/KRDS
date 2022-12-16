@@ -1,11 +1,11 @@
-from pyrqlite import dbapi2 as dbapi
+from clientForDatabase import databaseClient
 from gestion import HOME, HOST, PORT, SLASH, exitError
 from hashlib import sha256
 from os import chdir, mkdir, remove, walk, getenv
 from os.path import basename, exists, getsize, isdir, join
 from pathlib import PurePath
-# from shutil import rmtree
-# from pathlib import Path
+from shutil import rmtree
+from pathlib import Path
 
 
 
@@ -68,11 +68,9 @@ def getPathHashFromDatabase(databaseConnection, userID):
 
     sqlFetchFilesQuery = """SELECT path, hash from files where user_id = ?"""
 
-    with databaseConnection.cursor() as databaseCursor:
-
-        databaseCursor.execute(sqlFetchFilesQuery, (userID,))
-
-        return databaseCursor.fetchall()
+    databaseConnection.execute(sqlFetchFilesQuery, (userID,))
+    
+    return databaseConnection.fetchall()
 
 
 
@@ -167,15 +165,11 @@ def getPackedSortedFiles(userID, localFiles, databaseFiles):
 
 
 
-def sendRequest(databaseConnection, request, data, message, fileNameIndex):
-    
-    with databaseConnection.cursor() as databaseCursor:
-        databaseCursor.executemany(request, data)
-
+def sendRequest(databaseConnection,request,arr,msg,idx):
+    databaseConnection.executemany(request, arr)
     databaseConnection.commit()
-
-    if len(data):
-        print(f'[DATA] : {message} files {[basename(f[fileNameIndex]) for f in data]}')
+    if len(arr):
+        print(f'[DATA] : {msg} files {[basename(f[idx]) for f in arr]}')
 
 
 
@@ -193,7 +187,7 @@ def uploadUserFiles(databaseConnection, filesStatus):
     sqlEditedFileQuery =  'UPDATE      files SET blob = ?, hash = ?     WHERE user_id = ? and path = ?'
     sqlCreatedFileQuery = 'INSERT INTO files(user_id, path, blob, hash) VALUES(?, ?, ?, ?)'
     sqlDeletedFileQuery = 'DELETE FROM files                            WHERE user_id = ? and path = ?'
-
+            
     # Send requests
     sendRequest(databaseConnection, sqlMovedFileQuery,   filesStatus.moved,   'Moved',   0)
     sendRequest(databaseConnection, sqlEditedFileQuery,  filesStatus.edited,  'Edited',  3)
@@ -219,9 +213,9 @@ def disconnect():
     userID = getenv('USERID')
     localFiles = collectUserLocalFiles(HOME) # List of tuple (path, hash)
 
-    databaseConnection = dbapi.connect(HOST, PORT)
-
     try:
+        databaseConnection = databaseClient(HOST, PORT, f'Connected to SQLite database!')
+
         databaseFiles = getPathHashFromDatabase(databaseConnection, userID)  # List of tuple (path, hash)
         filesStatus = getPackedSortedFiles(userID, localFiles, databaseFiles) # Class of four list of files (moved, edited, created, deleted)
         

@@ -1,7 +1,7 @@
 from gestion import HOST, PORT, exitError
 from getpass import getpass
 from hashlib import sha256
-from clientForDatabase import databaseClient
+from pyrqlite import dbapi2 as dbapi
 
 
 
@@ -46,7 +46,7 @@ def create_user():
     password = getpass('Password: ')
 
     try:
-        databaseConnection = databaseClient(HOST, PORT, 'Connected to SQLite to delete user.')
+        databaseConnection = dbapi.connect(HOST, PORT)
 
         # Get and save user ID
         userID = getUserID(databaseConnection, username, hash(password))

@@ -1,11 +1,12 @@
 from gestion import HOST, PORT, STUDENT_ROLE
 from hashlib import sha256
 from getpass import getpass
-from clientForDatabase import databaseClient
+from pyrqlite import dbapi2 as dbapi
 
 
 
 def verifyUsername(databaseConnection, username):
+    
     databaseConnection.execute('SELECT username FROM users WHERE username=?', (username, ))
 
     if databaseConnection.fetchone() is not None:
@@ -39,8 +40,10 @@ def addUser(databaseConnection, username, password):
     
 
 def create_user():
+
+    databaseConnection = dbapi.connect(HOST, PORT)
+
     try:
-        databaseConnection = databaseClient(HOST, PORT, 'Connected to SQLite to add user.')
 
         username = input('Username: ')
         verifyUsername(databaseConnection, username)

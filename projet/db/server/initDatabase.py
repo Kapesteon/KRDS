@@ -1,13 +1,16 @@
-from gestion import DATABASE
+# from gestion import DATABASE
 from hashlib import sha256
-from serverForDatabase import sqlite
+from pyrqlite import dbapi2 as dbapi
+from traceback import print_exc
+from printDatabase import read_tables
 
 
 
-def create_tables():
-    connection = sqlite.connect(DATABASE) # create if doesn't exist
-    with connection:
-        connection.execute("""
+def create_tables(connection):
+    
+    with connection.cursor() as cursor:
+
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id            integer PRIMARY KEY,
                 role          text NOT NULL,
@@ -15,7 +18,8 @@ def create_tables():
                 password_hash text NOT NULL
             );
         """)
-        connection.execute("""
+
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS files (
                 id      integer NOT NULL,
                 user_id integer NOT NULL,
@@ -26,11 +30,11 @@ def create_tables():
                 FOREIGN KEY (user_id) REFERENCES users (user_id) 
             );
         """)
+    
 
 
 
-def fill_user():
-    connection = sqlite.connect(DATABASE)
+def fill_user(connection):
 
     sql = 'INSERT INTO users (role, username, password_hash) values(?, ?, ?)'
     data = [
@@ -38,14 +42,27 @@ def fill_user():
         ('student', 'Bob',   sha256('Chapeau'.encode()).hexdigest()),
         ('student', 'Chris', sha256('Tof'.encode()).hexdigest()) ]
 
-    with connection:
-        connection.executemany(sql, data)
+    with connection.cursor() as cursor:
+        cursor.executemany(sql, data)
 
 
 
 def main():
-    create_tables()
-    fill_user()
+
+    connection = dbapi.connect(host='localhost', port=4001,) # create if doesn't exist
+
+    try:
+        create_tables(connection)
+        fill_user(connection)
+        read_tables(connection)
+
+    except Exception as error:
+        print_exc()
+        print("[ERROR] : SQL connection failed, the database couldn't be initialised:", error)
+
+    finally:
+        connection.close()
+
     return
 
 

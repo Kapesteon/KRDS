@@ -6,7 +6,6 @@ from printDatabase import read_tables
 from sys import argv
 
 
-
 def create_tables(connection):
     
     with connection.cursor() as cursor:
@@ -54,9 +53,11 @@ def fill_user(connection):
 
 
 
+
+
 def main():
 
-    connection = dbapi.connect(host='localhost', port=4001,) # create if doesn't exist
+    connection = dbapi.connect(host=HOST, port=PORT,) # create if doesn't exist
 
     try:
         create_tables(connection)

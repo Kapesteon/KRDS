@@ -20,12 +20,12 @@ try:
         print("Default host loaded")
 
     if PORT == 'None':
-        PORT = 65432
+        PORT = 4001
         print("Default Port loaded")
 
 except:
     HOST = '192.168.0.174'#'192.168.223.1'
-    PORT = 65432#5000
+    PORT = 4001#5000
     print("Error while retriving env vars")
 
 

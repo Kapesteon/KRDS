@@ -23,4 +23,7 @@ wget -qO- https://github.com/novnc/websockify/archive/refs/tags/v0.10.0.tar.gz |
 #chmod +x -v $NO_VNC_HOME/utils/*.sh
 ## create index.html to forward automatically to `vnc_lite.html`
 
+apt-get install git -y
 apt-get install python3 -y
+apt-get install python3-pip -y
+pip install git+https://github.com/rqlite/pyrqlite.git

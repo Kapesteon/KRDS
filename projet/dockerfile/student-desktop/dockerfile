@@ -19,7 +19,7 @@ ENV HOME=/home \
     KEY=vnc-server-private.pem \
     CERT=vnc-server.pem \
     DB_HOST=192.168.0.174 \
-    DB_PORT=65432
+    DB_PORT=4001
 
 WORKDIR $HOME
 

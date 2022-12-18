@@ -23,7 +23,7 @@ if len(sys.argv) == 2:
     print("1 argument given")
     HOST = sys.argv[1]
 
-if len(sys.argv) == 3:
+if len(sys.argv) >= 3:
     print("2 arguments given")
     HOST = sys.argv[1]
     PORT = int(sys.argv[2])

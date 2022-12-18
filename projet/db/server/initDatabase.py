@@ -3,6 +3,7 @@ from hashlib import sha256
 from pyrqlite import dbapi2 as dbapi
 from traceback import print_exc
 from printDatabase import read_tables
+from sys import argv
 
 
 
@@ -10,8 +11,11 @@ def create_tables(connection):
     
     with connection.cursor() as cursor:
 
-        cursor.execute('DROP TABLE IF EXISTS files')
-        cursor.execute('DROP TABLE IF EXISTS users')
+        if len(argv) == 4 and argv[3]:
+            if argv[3] == 'reset':
+                print('[INFO] The database has been reset')
+                cursor.execute('DROP TABLE IF EXISTS files')
+                cursor.execute('DROP TABLE IF EXISTS users')
         
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (

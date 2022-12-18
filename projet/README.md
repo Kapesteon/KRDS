@@ -70,7 +70,6 @@ You will also need to run python on nodes machines and install dependencies
 
 1 - Install python
 
-
 2 - sudo pip3 install flask-restful 
 
 3 - sudo pip3 install kubernetes 
@@ -79,16 +78,39 @@ You will also need to run python on nodes machines and install dependencies
 
 5 - sudo pip3 install flask
 
-6 - sudo pip install git+https://github.com/rqlite/pyrqlite.git
+6 - sudo pip3 install git+https://github.com/rqlite/pyrqlite.git
 
 
 ### Database initialisation
-From the project folder. You will need to run the command :
+From the project folder. You will need to run the command:
 
-      python3 ./db/initDatabase.py
-Check if it was successful :
+      ./db/server/install_db_server.sh
+Then you can start it with your ip address (default is localhost):
 
-      python3 ./db/server/printDatabase.py
+      ./db/server/start_db_server.sh <your IP>
+You should see a database printed in the terminal with 3 default users created, with credentials:
+| Username 	| Password  	|
+|----------	|-----------	|
+| Alice    	| Merveille 	|
+| Bob      	| Chapeau   	|
+| Chris    	| Tof       	|
+
+To shutdown the database, run:
+
+      ./db./server/kill_db_server.sh
+To reset the database content you can run the start command with **reset** flag:
+
+      ./db/server/start_db_server.sh <your IP> reset
+
+As the owner of the database, you can add or delete users and their files. To do so, run:
+
+      python3 addUser.py <your IP> 4001
+      python3 deleteUser.py <your IP> 4001
+
+And to see the current database state, you can run:
+
+      ./python3 printDatabase.py <your IP> 4001
+**4001** is the default port of the leader node of the distributed relational database, we letted it as an argument if you wish to edit it yourselves in (in **start_db_server.sh**) because we currently do not offer the possibility to choose it.
 
 ---
 

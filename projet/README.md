@@ -61,7 +61,11 @@ Because docker's installation varies per Linux distro and require kernel modules
 
 - 2 - Once docker is intalled, in a terminal, use `cd` to go to the docker folder of this project
 
-- 3 - Use the the following command to build the docker image and push to the local registry \
+- 3 - Make sure the docker service is up and running
+
+      sudo systemctl start docker.service
+
+- 4 - Use the the following command to build the docker image and push to the local registry \
 
         ./build_docker_image.sh 
 
@@ -96,15 +100,17 @@ Check if it was successful :
 ## Usage
 Once the installation and first initialisation are complete 
 
-Open 3 terminals and place yourself at the root of the project, from there run the following commands :
+Open 2 terminals and place yourself at the root of the project, from there run the following commands :
 
 Command to launch the database :
 
       python3 ./db/server/serverForDatabase.py
 
 
-Command to launch the REST end-point API :
+Command to launch the REST end-point API (you first need to export the env var locating the client.config file of microk8s :
 
+      KUBECONFIG="/var/snap/microk8s/4221/credentials/client.config"
+      export KUBECONFIG
       python3 python-kubernetes-repartitor.py [EXPOSED_IP] [EXPOSED_PORT]
 
 

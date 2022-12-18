@@ -1,7 +1,3 @@
-#!/bin/sh
-
-rqliteDir='rqlite-v7.13.0-linux-amd64'
-
 ["$1" == ""] && ip='localhost' || ip=$1
 
 echo $ip
@@ -31,7 +27,9 @@ sleep 2
 $start_node1 & 
 sleep 2
 $start_node2 & 
+sleep 2
 
 jobs
-sleep 1
-python3 initDatabase.py $ip $rp0
+
+sleep 2
+python3 initDatabase.py $ip $rp0 $2

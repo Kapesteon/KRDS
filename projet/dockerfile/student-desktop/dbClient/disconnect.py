@@ -81,7 +81,7 @@ def convertIntoBinary(filePath):
     '''Get files as binnary value. To be send to the database.'''
     with open(filePath, 'rb') as file:
         binary = file.read()
-    return binary
+    return str(binary)
 
 
 
@@ -168,16 +168,16 @@ def getPackedSortedFiles(userID, localFiles, databaseFiles):
 
 
 
-def sendRequest(databaseConnection,request,arr,msg,idx):
+def sendRequest(databaseConnection,request,data,msg,idx):
 
-    if len(arr):
+    if len(data):
 
         with databaseConnection.cursor() as databaseCursor:
 
-            databaseCursor.executemany(request, arr)
+            databaseCursor.executemany(request, data)
             databaseConnection.commit()
         
-            print(f'[DATA] : {msg} files {[basename(f[idx]) for f in arr]}')
+            print(f'[DATA] : {msg} files {[basename(f[idx]) for f in data]}')
 
 
 

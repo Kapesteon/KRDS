@@ -1,9 +1,9 @@
-from pyrqlite import dbapi2 as dbapi
+from ast import literal_eval
 from gestion import HOME, HOST, PORT, exitError, returnError
-from getpass import getpass
 from hashlib import sha256
 from os import makedirs, getenv, remove
 from os.path import basename, dirname, join
+from pyrqlite import dbapi2 as dbapi
 
 
 
@@ -52,6 +52,8 @@ def writeToFile(filePath, binaryFile):
     '''Create path if doesn't exist and write file'''
     absPath = join(HOME, filePath)
     makedirs(dirname(absPath), exist_ok=True)
+
+    binaryFile = literal_eval(binaryFile)
 
     with open(absPath, 'wb') as file:
         try: 

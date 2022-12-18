@@ -12,7 +12,9 @@ def getUserID(host, port, username, passwordHash):
 
         with dbConnection.cursor() as dbCursor:
 
-            dbCursor.execute('SELECT id, role, password_hash FROM users WHERE username=?', (username,))
+            sqlOperation = 'SELECT id, role, password_hash FROM users WHERE username=? and password_hash=?'
+            sqlParameters = (username, passwordHash,)
+            dbCursor.execute(sqlOperation, sqlParameters)
 
             requestResult = dbCursor.fetchone()
             if requestResult == None: raise Exception('Account not found.')

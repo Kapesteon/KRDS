@@ -3,13 +3,13 @@ from hashlib import sha256
 from pyrqlite import dbapi2 as dbapi
 from traceback import print_exc
 from printDatabase import read_tables
-
+from gestion import HOST, PORT
 
 
 def create_tables(connection):
     
     with connection.cursor() as cursor:
-
+        print(connection)
         cursor.execute('DROP TABLE IF EXISTS files')
         cursor.execute('DROP TABLE IF EXISTS users')
         
@@ -50,9 +50,11 @@ def fill_user(connection):
 
 
 
+
+
 def main():
 
-    connection = dbapi.connect(host='localhost', port=4001,) # create if doesn't exist
+    connection = dbapi.connect(host=HOST, port=PORT,) # create if doesn't exist
 
     try:
         create_tables(connection)

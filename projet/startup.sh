@@ -1,7 +1,13 @@
 #! /bin/sh
 
+microk8s reset
+
 microk8s stop
 microk8s start
+
+microk8s enable dns
+microk8s enable registry
+
 
 sleep 2
 kubectl get nodes

@@ -1,9 +1,10 @@
 # from gestion import DATABASE
 from hashlib import sha256
-from pyrqlite import dbapi2 as dbapi
-from traceback import print_exc
+from gestion import HOST, PORT
 from printDatabase import read_tables
+from pyrqlite import dbapi2 as dbapi
 from sys import argv
+from traceback import print_exc
 
 
 def create_tables(connection):
